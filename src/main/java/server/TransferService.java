@@ -26,25 +26,13 @@ public interface TransferService {
 
     /**
      * 
-     * @param arg3
-     * @param arg2
-     * @param arg4
-     * @param arg1
-     * @param arg0
+     * @return
+     *     returns server.AccountUrlList
      */
     @WebMethod
-    @Action(input = "http://server/TransferService/sendInternalRequest", output = "http://server/TransferService/sendInternalResponse")
-    public void sendInternal(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1,
-            @WebParam(name = "arg2", partName = "arg2")
-                    String arg2,
-            @WebParam(name = "arg3", partName = "arg3")
-                    int arg3,
-            @WebParam(name = "arg4", partName = "arg4")
-                    String arg4);
+    @WebResult(partName = "return")
+    @Action(input = "http://server/TransferService/getExternalAccountsNameRequest", output = "http://server/TransferService/getExternalAccountsNameResponse")
+    public AccountUrlList getExternalAccountsName();
 
     /**
      * 
@@ -58,27 +46,39 @@ public interface TransferService {
     @WebMethod
     @Action(input = "http://server/TransferService/sendExternalRequest", output = "http://server/TransferService/sendExternalResponse")
     public void sendExternal(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1,
-            @WebParam(name = "arg2", partName = "arg2")
-                    String arg2,
-            @WebParam(name = "arg3", partName = "arg3")
-                    int arg3,
-            @WebParam(name = "arg4", partName = "arg4")
-                    String arg4,
-            @WebParam(name = "arg5", partName = "arg5")
-                    String arg5);
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1,
+        @WebParam(name = "arg2", partName = "arg2")
+        String arg2,
+        @WebParam(name = "arg3", partName = "arg3")
+        long arg3,
+        @WebParam(name = "arg4", partName = "arg4")
+        String arg4,
+        @WebParam(name = "arg5", partName = "arg5")
+        String arg5);
 
     /**
      * 
-     * @return
-     *     returns server.AccountUrlList
+     * @param arg3
+     * @param arg2
+     * @param arg4
+     * @param arg1
+     * @param arg0
      */
     @WebMethod
-    @WebResult(partName = "return")
-    @Action(input = "http://server/TransferService/getExternalAccountsNameRequest", output = "http://server/TransferService/getExternalAccountsNameResponse")
-    public AccountUrlList getExternalAccountsName();
+    @Action(input = "http://server/TransferService/sendInternalRequest", output = "http://server/TransferService/sendInternalResponse")
+    public void sendInternal(
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1,
+        @WebParam(name = "arg2", partName = "arg2")
+        String arg2,
+        @WebParam(name = "arg3", partName = "arg3")
+        long arg3,
+        @WebParam(name = "arg4", partName = "arg4")
+        String arg4);
 
 }

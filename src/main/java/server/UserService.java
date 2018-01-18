@@ -35,8 +35,8 @@ public interface UserService {
         @FaultAction(className = Exception_Exception.class, value = "http://server/UserService/removeUser/Fault/Exception")
     })
     public void removeUser(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0)
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0)
         throws Exception_Exception
     ;
 
@@ -51,25 +51,10 @@ public interface UserService {
         @FaultAction(className = Exception_Exception.class, value = "http://server/UserService/login/Fault/Exception")
     })
     public void login(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1)
-        throws Exception_Exception
-    ;
-
-    /**
-     * 
-     * @return
-     *     returns server.User
-     * @throws Exception_Exception
-     */
-    @WebMethod
-    @WebResult(partName = "return")
-    @Action(input = "http://server/UserService/getCurrentUserRequest", output = "http://server/UserService/getCurrentUserResponse", fault = {
-        @FaultAction(className = Exception_Exception.class, value = "http://server/UserService/getCurrentUser/Fault/Exception")
-    })
-    public User getCurrentUser()
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1)
         throws Exception_Exception
     ;
 
@@ -111,10 +96,25 @@ public interface UserService {
         @FaultAction(className = Exception_Exception.class, value = "http://server/UserService/createUser/Fault/Exception")
     })
     public void createUser(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1)
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1)
+        throws Exception_Exception
+    ;
+
+    /**
+     * 
+     * @return
+     *     returns server.User
+     * @throws Exception_Exception
+     */
+    @WebMethod
+    @WebResult(partName = "return")
+    @Action(input = "http://server/UserService/getCurrentUserRequest", output = "http://server/UserService/getCurrentUserResponse", fault = {
+        @FaultAction(className = Exception_Exception.class, value = "http://server/UserService/getCurrentUser/Fault/Exception")
+    })
+    public User getCurrentUser()
         throws Exception_Exception
     ;
 

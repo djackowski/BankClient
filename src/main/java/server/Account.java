@@ -19,7 +19,7 @@ import java.util.List;
  *   &lt;complexContent>
  *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
  *       &lt;sequence>
- *         &lt;element name="balance" type="{http://www.w3.org/2001/XMLSchema}int"/>
+ *         &lt;element name="balance" type="{http://www.w3.org/2001/XMLSchema}long" minOccurs="0"/>
  *         &lt;element name="histories" type="{http://server/}history" maxOccurs="unbounded" minOccurs="0"/>
  *         &lt;element name="name" type="{http://www.w3.org/2001/XMLSchema}string" minOccurs="0"/>
  *       &lt;/sequence>
@@ -38,7 +38,7 @@ import java.util.List;
 })
 public class Account {
 
-    protected int balance;
+    protected Long balance;
     @XmlElement(nillable = true)
     protected List<History> histories;
     protected String name;
@@ -46,16 +46,24 @@ public class Account {
     /**
      * Gets the value of the balance property.
      * 
+     * @return
+     *     possible object is
+     *     {@link Long }
+     *     
      */
-    public int getBalance() {
+    public Long getBalance() {
         return balance;
     }
 
     /**
      * Sets the value of the balance property.
      * 
+     * @param value
+     *     allowed object is
+     *     {@link Long }
+     *     
      */
-    public void setBalance(int value) {
+    public void setBalance(Long value) {
         this.balance = value;
     }
 

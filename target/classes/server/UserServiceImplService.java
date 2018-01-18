@@ -1,2 +1,0 @@
-UserService.class
-UserServiceImplService.class

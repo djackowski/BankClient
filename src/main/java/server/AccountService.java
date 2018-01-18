@@ -30,16 +30,16 @@ public interface AccountService {
      * @param arg1
      * @param arg0
      * @return
-     *     returns int
+     *     returns long
      */
     @WebMethod
     @WebResult(partName = "return")
     @Action(input = "http://server/AccountService/getBalanceRequest", output = "http://server/AccountService/getBalanceResponse")
-    public int getBalance(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1);
+    public long getBalance(
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1);
 
     /**
      * 
@@ -54,8 +54,8 @@ public interface AccountService {
         @FaultAction(className = Exception_Exception.class, value = "http://server/AccountService/createAccount/Fault/Exception")
     })
     public String createAccount(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0)
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0)
         throws Exception_Exception
     ;
 
@@ -67,10 +67,10 @@ public interface AccountService {
     @WebMethod
     @Action(input = "http://server/AccountService/deleteAccountRequest", output = "http://server/AccountService/deleteAccountResponse")
     public void deleteAccount(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1);
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1);
 
     /**
      * 
@@ -81,12 +81,12 @@ public interface AccountService {
     @WebMethod
     @Action(input = "http://server/AccountService/withdrawalRequest", output = "http://server/AccountService/withdrawalResponse")
     public void withdrawal(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1,
-            @WebParam(name = "arg2", partName = "arg2")
-                    int arg2);
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1,
+        @WebParam(name = "arg2", partName = "arg2")
+        long arg2);
 
     /**
      * 
@@ -97,11 +97,11 @@ public interface AccountService {
     @WebMethod
     @Action(input = "http://server/AccountService/depositRequest", output = "http://server/AccountService/depositResponse")
     public void deposit(
-            @WebParam(name = "arg0", partName = "arg0")
-                    String arg0,
-            @WebParam(name = "arg1", partName = "arg1")
-                    String arg1,
-            @WebParam(name = "arg2", partName = "arg2")
-                    int arg2);
+        @WebParam(name = "arg0", partName = "arg0")
+        String arg0,
+        @WebParam(name = "arg1", partName = "arg1")
+        String arg1,
+        @WebParam(name = "arg2", partName = "arg2")
+        long arg2);
 
 }

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.Exception;
 import java.math.BigInteger;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.function.Function;
@@ -51,15 +52,6 @@ public class MainController implements Initializable {
     TextArea externalTitleTextArea;
 
     @FXML
-    ComboBox<String> internalFromComboBox;
-
-    @FXML
-    ComboBox<String> internalToComboBox;
-
-    @FXML
-    TextField internalAmountTextField;
-
-    @FXML
     TextArea internalTitleTextArea;
 
     @FXML
@@ -77,11 +69,11 @@ public class MainController implements Initializable {
     @FXML
     TextField currentUserLogin;
 
-    public void onRefreshBalanceButtonClicked(){
+    public void onRefreshBalanceButtonClicked() {
         UserServiceImplService userServiceImplService = new UserServiceImplService();
         UserService userService = userServiceImplService.getUserServiceImplPort();
         String selectedAccount = availableAccountsComboBox.getValue();
-        int balance = 0;
+        Long balance = 0L;
         try {
             balance = userService.getCurrentUser().getAccounts().stream().filter(new Predicate<Account>() {
                 @Override
@@ -99,7 +91,7 @@ public class MainController implements Initializable {
             e.printStackTrace();
         }
 
-        balanceTextField.setText(String.valueOf(balance));
+        balanceTextField.setText(convertToZl(balance));
     }
 
     public void onRefreshHistoryButtonClicked() {
@@ -176,8 +168,6 @@ public class MainController implements Initializable {
 
             availableAccountsComboBox.getItems().remove(accountToBeDeleted);
             externalFromComboBox.getItems().remove(accountToBeDeleted);
-            internalFromComboBox.getItems().remove(accountToBeDeleted);
-            internalToComboBox.getItems().remove(accountToBeDeleted);
             historyAccountsComboBox.getItems().remove(accountToBeDeleted);
         } catch (Exception e) {
             e.printStackTrace();
@@ -214,13 +204,20 @@ public class MainController implements Initializable {
             alert.showAndWait();
             return;
         }
-        int amount = Integer.parseInt(amountFromText);
+        Long amount = convertToGR(amountFromText);
         try {
             String login = userService.getCurrentUser().getLogin();
-            int amountBefore = Integer.parseInt(balanceTextField.getText());
+            Long amountBefore = convertToGR(balanceTextField.getText());
+            Long newAmount = amountBefore + amount;
+            if (newAmount > 1000000000) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setContentText("You are too rich to deposit more money!");
+                alert.showAndWait();
+                return;
+            }
             accountService.deposit(login, selectedAccount, amount);
-            int newAmount = amountBefore + amount;
-            balanceTextField.setText(String.valueOf(newAmount));
+            balanceTextField.setText(convertToZl(newAmount));
 
         } catch (Exception_Exception e) {
             e.printStackTrace();
@@ -229,14 +226,22 @@ public class MainController implements Initializable {
 
     }
 
+    private long convertToGR(String valueInZL) {
+        return (long) (Float.parseFloat(valueInZL) * 100.0f);
+    }
+
     private void forceOnlyNumeric(TextField textField) {
         textField.textProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue,
                                 String newValue) {
-                if (!newValue.matches("\\d*")) {
-                    textField.setText(newValue.replaceAll("[^\\d]", ""));
+                if (!newValue.matches("^\\d*\\.?\\d{0,2}$")) {
+                    textField.setText(oldValue);
                 }
+                if (newValue.length() > String.valueOf(100000000).length()) {
+                    textField.setText(oldValue);
+                }
+
             }
         });
     }
@@ -252,9 +257,9 @@ public class MainController implements Initializable {
             String currentLogin = userService.getCurrentUser().getLogin();
             String createdAccount = accountService.createAccount(currentLogin);
             availableAccountsComboBox.getItems().add(createdAccount);
-            internalFromComboBox.getItems().addAll(createdAccount);
+//            internalFromComboBox.getItems().addAll(createdAccount);
             externalFromComboBox.getItems().addAll(createdAccount);
-            internalToComboBox.getItems().addAll(createdAccount);
+//            internalToComboBox.getItems().addAll(createdAccount);
             historyAccountsComboBox.getItems().add(createdAccount);
         } catch (Exception_Exception e) {
             e.printStackTrace();
@@ -262,147 +267,76 @@ public class MainController implements Initializable {
         }
     }
 
-    public void onInternalSendButtonClicked() {
+    public void onSendButtonClicked() {
+
         TransferServiceImplService transferServiceImplService = new TransferServiceImplService();
         TransferService transferService = transferServiceImplService.getTransferServiceImplPort();
 
         UserServiceImplService userServiceImplService = new UserServiceImplService();
         UserService userService = userServiceImplService.getUserServiceImplPort();
 
+
+        String user = null;
         try {
-            String user = userService.getCurrentUser().getLogin();
-            String sourceAccountName = internalFromComboBox.getValue();
-            String targetAccountName = internalToComboBox.getValue();
-
-            if (sourceAccountName == null || sourceAccountName.isEmpty() || targetAccountName == null || targetAccountName.isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Accounts must be chosen!");
-                alert.showAndWait();
-                return;
-            }
-            if (targetAccountName.equals(sourceAccountName)) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("You cannot transfer funds to the same account!");
-                alert.showAndWait();
-                return;
-            }
-
-            String title = internalTitleTextArea.getText();
-
-            if (title.length() < 1 || title.length() > 255) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Title length must be greater than 1 char and less than 255 chars!");
-                alert.showAndWait();
-                return;
-            }
-            forceOnlyNumeric(internalAmountTextField);
-            String text = internalAmountTextField.getText();
-
-            if (text.isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Amount cannot be empty!");
-                alert.showAndWait();
-                return;
-            }
-            int amount = Integer.parseInt(text);
-
-            try {
-                transferService.sendInternal(user, sourceAccountName, targetAccountName, amount, title);
-            } catch (Exception e) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Insufficient balance!");
-                alert.showAndWait();
-                return;
-            }
+            user = userService.getCurrentUser().getLogin();
         } catch (Exception_Exception e) {
             e.printStackTrace();
+        }
+        String sourceAccountName = externalFromComboBox.getValue();
+        String targetAccountName = externalToAccountTextField.getText();
+        String destinationName = externalDestinationTextField.getText();
+
+        if (sourceAccountName == null) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
-            alert.setContentText("There is no logged in user!");
+            alert.setContentText("Choose source account!");
             alert.showAndWait();
             return;
         }
-    }
 
-    public void onExternalSendButtonClicked() {
-        TransferServiceImplService transferServiceImplService = new TransferServiceImplService();
-        TransferService transferService = transferServiceImplService.getTransferServiceImplPort();
-
-        UserServiceImplService userServiceImplService = new UserServiceImplService();
-        UserService userService = userServiceImplService.getUserServiceImplPort();
-
-        try {
-            String user = userService.getCurrentUser().getLogin();
-            String sourceAccountName = externalFromComboBox.getValue();
-            String targetAccountName = externalToAccountTextField.getText();
-            String destinationName = externalDestinationTextField.getText();
-
-            if (sourceAccountName == null) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Choose source account!");
-                alert.showAndWait();
-                return;
-            }
-
-            if (sourceAccountName.isEmpty() || targetAccountName.isEmpty() || destinationName.isEmpty() || externalAmountTextField.getText().isEmpty()) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("All fields must be filled!");
-                alert.showAndWait();
-                return;
-            }
-            if (!validateAccount(targetAccountName)) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Target account is not correct!");
-                alert.showAndWait();
-                return;
-            }
-
-            if (destinationName.length() < 1 || destinationName.length() > 255) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Destination name length must be greater than 1 char and less than 255 chars!");
-                alert.showAndWait();
-                return;
-            }
-            String title = externalTitleTextArea.getText();
-
-
-            if (title.length() < 1 || title.length() > 255) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Title length must be greater than 1 char and less than 255 chars!");
-                alert.showAndWait();
-                return;
-            }
-
-            forceOnlyNumeric(externalAmountTextField);
-
-
-            int amount = Integer.parseInt(externalAmountTextField.getText());
-
-            try {
-                transferService.sendExternal(user, sourceAccountName, targetAccountName, amount, title, destinationName);
-
-            } catch (Exception e) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setContentText("Insufficient balance!");
-                alert.showAndWait();
-                return;
-            }
-        } catch (Exception_Exception e) {
-            e.printStackTrace();
-
+        if (sourceAccountName.isEmpty() || targetAccountName.isEmpty() || destinationName.isEmpty() || externalAmountTextField.getText().isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("All fields must be filled!");
+            alert.showAndWait();
+            return;
+        }
+        if (!validateAccount(targetAccountName)) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("Target account is not correct!");
+            alert.showAndWait();
+            return;
         }
 
+        if (destinationName.length() < 1 || destinationName.length() > 255) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("Destination name length must be greater than 1 char and less than 255 chars!");
+            alert.showAndWait();
+            return;
+        }
+        String title = externalTitleTextArea.getText();
+
+
+        if (title.length() < 1 || title.length() > 255) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("Title length must be greater than 1 char and less than 255 chars!");
+            alert.showAndWait();
+            return;
+        }
+
+        Long amount = convertToGR(externalAmountTextField.getText());
+
+        String bankId = targetAccountName.substring(2, 10);
+
+        if (sourceAccountName.contains(bankId)) {
+            transferService.sendInternal(user, sourceAccountName, targetAccountName, amount, title);
+
+        } else {
+            transferService.sendExternal(user, sourceAccountName, targetAccountName, amount, title, destinationName);
+        }
     }
 
     public void onWithdrawalButtonClicked() {
@@ -430,10 +364,10 @@ public class MainController implements Initializable {
             alert.showAndWait();
             return;
         }
-        int amount = Integer.parseInt(amountFromText);
+        Long amount = convertToGR(amountFromText);
         try {
             String login = userService.getCurrentUser().getLogin();
-            int amountBefore = Integer.parseInt(balanceTextField.getText());
+            Long amountBefore = convertToGR(balanceTextField.getText());
             try {
                 accountService.withdrawal(login, selectedAccount, amount);
 
@@ -444,8 +378,8 @@ public class MainController implements Initializable {
                 alert.showAndWait();
                 return;
             }
-            int newAmount = amountBefore - amount;
-            balanceTextField.setText(String.valueOf(newAmount));
+            Long newAmount = amountBefore - amount;
+            balanceTextField.setText(convertToZl(newAmount));
 
         } catch (Exception_Exception e) {
             e.printStackTrace();
@@ -478,7 +412,27 @@ public class MainController implements Initializable {
         forceOnlyNumeric(withdrawalAmount);
         forceOnlyNumeric(depositAmount);
         forceOnlyNumeric(externalAmountTextField);
-        forceOnlyNumeric(internalAmountTextField);
+    }
+
+    private String formatDecimal(float number) {
+        float epsilon = 0.004f; // 4 tenths of a cent
+        if (Math.abs(Math.round(number) - number) < epsilon) {
+            String format = String.format("%10.0f", number);
+            return format.replaceAll(",", "."); // sdb
+        } else {
+            String format = String.format("%10.2f", number);
+            return format.replaceAll(",", "."); // dj_segfault
+        }
+    }
+
+    public String convertToZl(Long balance) {
+        float newBalance = balance / 100.0f;
+        return formatDecimal(newBalance);
+    }
+
+    public String convertToZl(String balance) {
+        float newBalance = Long.parseLong(balance) / 100.0f;
+        return formatDecimal(newBalance);
     }
 
     private void initHistory(final UserService userService) {
@@ -496,13 +450,18 @@ public class MainController implements Initializable {
                     List<History> histories = account.getHistories();
 
                     ObservableList<History> data =
-                            FXCollections.observableArrayList(histories);
+                            FXCollections.observableArrayList(getConvertedHistories(histories));
 
                     historyTableView.getColumns().get(0).setCellValueFactory(new PropertyValueFactory<>("title"));
-                    historyTableView.getColumns().get(1).setCellValueFactory(new PropertyValueFactory<>("amount"));
+                    historyTableView.getColumns().get(1).setCellValueFactory(new PropertyValueFactory<>("modifiedAmount"));
                     historyTableView.getColumns().get(2).setCellValueFactory(new PropertyValueFactory<>("source"));
                     historyTableView.getColumns().get(3).setCellValueFactory(new PropertyValueFactory<>("balanceAfterOperation"));
                     historyTableView.setItems(data);
+
+                    for (int i = 0; i < historyTableView.getColumns().size(); i++) {
+                        historyTableView.getColumns().get(i).setSortable(false);
+                    }
+
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -511,12 +470,76 @@ public class MainController implements Initializable {
         });
     }
 
+    private List<ModifiedHistory> getConvertedHistories(List<History> baseHistories) {
+        List<ModifiedHistory> modifiedHistories = new ArrayList<>();
+        for (History history : baseHistories) {
+            Long amount = history.getAmount();
+            String convertedAmount = convertToZl(amount) + " zł";
+            modifiedHistories.add(new ModifiedHistory(convertedAmount, history.getBalanceAfterOperation(), history.getSource(), history.getTitle()));
+        }
+        return modifiedHistories;
+    }
+
+
+    public class ModifiedHistory extends History {
+
+        private String modifiedAmount;
+        private Long balanceAfterOperation;
+        private String source;
+        private String title;
+
+        public ModifiedHistory(String modifiedAmount, Long balanceAfterOperation, String source, String title) {
+            this.modifiedAmount = modifiedAmount;
+            this.balanceAfterOperation = balanceAfterOperation;
+            this.source = source;
+            this.title = title;
+        }
+
+        @Override
+        public Long getBalanceAfterOperation() {
+            return balanceAfterOperation;
+        }
+
+        @Override
+        public void setBalanceAfterOperation(Long balanceAfterOperation) {
+            this.balanceAfterOperation = balanceAfterOperation;
+        }
+
+        @Override
+        public String getSource() {
+            return source;
+        }
+
+        @Override
+        public void setSource(String source) {
+            this.source = source;
+        }
+
+        @Override
+        public String getTitle() {
+            return title;
+        }
+
+        @Override
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getModifiedAmount() {
+            return modifiedAmount;
+        }
+
+        public void setModifiedAmount(String modifiedAmount) {
+            this.modifiedAmount = modifiedAmount;
+        }
+    }
+
     private void getBalance(final UserService userService, ComboBox<String> comboBox) {
         comboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
                 try {
-                    int balance = userService.getCurrentUser().getAccounts().stream().filter(new Predicate<Account>() {
+                    Long balance = userService.getCurrentUser().getAccounts().stream().filter(new Predicate<Account>() {
                         @Override
                         public boolean test(Account account) {
                             return account.getName().equals(newValue);
@@ -528,8 +551,11 @@ public class MainController implements Initializable {
                             return new Exception();
                         }
                     }).getBalance();
-
-                    balanceTextField.setText(String.valueOf(balance));
+                    if (balance == null) {
+                        balanceTextField.setText(String.valueOf(0));
+                    } else {
+                        balanceTextField.setText(convertToZl(balance));
+                    }
                 } catch (Throwable throwable) {
                     throwable.printStackTrace();
                     //TODO; add exception
@@ -553,8 +579,6 @@ public class MainController implements Initializable {
             }).collect(Collectors.toList());
 
             availableAccountsComboBox.getItems().setAll(collection);
-            internalFromComboBox.getItems().setAll(collection);
-            internalToComboBox.getItems().setAll(collection);
             externalFromComboBox.getItems().setAll(collection);
             historyAccountsComboBox.getItems().setAll(collection);
 
