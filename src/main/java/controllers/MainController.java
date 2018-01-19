@@ -94,6 +94,41 @@ public class MainController implements Initializable {
         balanceTextField.setText(convertToZl(balance));
     }
 
+    private void initHistory(final UserService userService) {
+        historyAccountsComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                try {
+                    Account account = userService.getCurrentUser().getAccounts().stream().filter(new Predicate<Account>() {
+                        @Override
+                        public boolean test(Account account) {
+                            return account.getName().equals(newValue);
+                        }
+                    }).findFirst().orElseThrow(Exception::new);
+
+                    List<History> histories = account.getHistories();
+
+                    ObservableList<History> data =
+                            FXCollections.observableArrayList(getConvertedHistories(histories));
+
+                    historyTableView.getColumns().get(0).setCellValueFactory(new PropertyValueFactory<>("title"));
+                    historyTableView.getColumns().get(1).setCellValueFactory(new PropertyValueFactory<>("modifiedAmount"));
+                    historyTableView.getColumns().get(2).setCellValueFactory(new PropertyValueFactory<>("source"));
+                    historyTableView.getColumns().get(3).setCellValueFactory(new PropertyValueFactory<>("modifiedBalanceAfterOperation"));
+                    historyTableView.setItems(data);
+
+                    for (int i = 0; i < historyTableView.getColumns().size(); i++) {
+                        historyTableView.getColumns().get(i).setSortable(false);
+                    }
+
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
     public void onRefreshHistoryButtonClicked() {
         UserServiceImplService userServiceImplService = new UserServiceImplService();
         UserService userService = userServiceImplService.getUserServiceImplPort();
@@ -109,13 +144,17 @@ public class MainController implements Initializable {
             List<History> histories = account.getHistories();
 
             ObservableList<History> data =
-                    FXCollections.observableArrayList(histories);
+                    FXCollections.observableArrayList(getConvertedHistories(histories));
 
             historyTableView.getColumns().get(0).setCellValueFactory(new PropertyValueFactory<>("title"));
-            historyTableView.getColumns().get(1).setCellValueFactory(new PropertyValueFactory<>("amount"));
+            historyTableView.getColumns().get(1).setCellValueFactory(new PropertyValueFactory<>("modifiedAmount"));
             historyTableView.getColumns().get(2).setCellValueFactory(new PropertyValueFactory<>("source"));
-            historyTableView.getColumns().get(3).setCellValueFactory(new PropertyValueFactory<>("balanceAfterOperation"));
+            historyTableView.getColumns().get(3).setCellValueFactory(new PropertyValueFactory<>("modifiedBalanceAfterOperation"));
             historyTableView.setItems(data);
+
+            for (int i = 0; i < historyTableView.getColumns().size(); i++) {
+                historyTableView.getColumns().get(i).setSortable(false);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -204,6 +243,14 @@ public class MainController implements Initializable {
             alert.showAndWait();
             return;
         }
+
+        if(Integer.parseInt(amountFromText) == 0) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("You cannot deposit 0 zł!");
+            alert.showAndWait();
+            return;
+        }
         Long amount = convertToGR(amountFromText);
         try {
             String login = userService.getCurrentUser().getLogin();
@@ -284,6 +331,8 @@ public class MainController implements Initializable {
         }
         String sourceAccountName = externalFromComboBox.getValue();
         String targetAccountName = externalToAccountTextField.getText();
+
+
         String destinationName = externalDestinationTextField.getText();
 
         if (sourceAccountName == null) {
@@ -293,7 +342,13 @@ public class MainController implements Initializable {
             alert.showAndWait();
             return;
         }
-
+        if(sourceAccountName.equals(targetAccountName)) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setContentText("You cannot send money to the same account!");
+            alert.showAndWait();
+            return;
+        }
         if (sourceAccountName.isEmpty() || targetAccountName.isEmpty() || destinationName.isEmpty() || externalAmountTextField.getText().isEmpty()) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
@@ -435,47 +490,13 @@ public class MainController implements Initializable {
         return formatDecimal(newBalance);
     }
 
-    private void initHistory(final UserService userService) {
-        historyAccountsComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                try {
-                    Account account = userService.getCurrentUser().getAccounts().stream().filter(new Predicate<Account>() {
-                        @Override
-                        public boolean test(Account account) {
-                            return account.getName().equals(newValue);
-                        }
-                    }).findFirst().orElseThrow(Exception::new);
-
-                    List<History> histories = account.getHistories();
-
-                    ObservableList<History> data =
-                            FXCollections.observableArrayList(getConvertedHistories(histories));
-
-                    historyTableView.getColumns().get(0).setCellValueFactory(new PropertyValueFactory<>("title"));
-                    historyTableView.getColumns().get(1).setCellValueFactory(new PropertyValueFactory<>("modifiedAmount"));
-                    historyTableView.getColumns().get(2).setCellValueFactory(new PropertyValueFactory<>("source"));
-                    historyTableView.getColumns().get(3).setCellValueFactory(new PropertyValueFactory<>("balanceAfterOperation"));
-                    historyTableView.setItems(data);
-
-                    for (int i = 0; i < historyTableView.getColumns().size(); i++) {
-                        historyTableView.getColumns().get(i).setSortable(false);
-                    }
-
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-
     private List<ModifiedHistory> getConvertedHistories(List<History> baseHistories) {
         List<ModifiedHistory> modifiedHistories = new ArrayList<>();
         for (History history : baseHistories) {
             Long amount = history.getAmount();
             String convertedAmount = convertToZl(amount) + " zł";
-            modifiedHistories.add(new ModifiedHistory(convertedAmount, history.getBalanceAfterOperation(), history.getSource(), history.getTitle()));
+            String convertedBalance = convertToZl(history.getBalanceAfterOperation()) + " zł";
+            modifiedHistories.add(new ModifiedHistory(convertedAmount, convertedBalance, history.getSource(), history.getTitle()));
         }
         return modifiedHistories;
     }
@@ -484,24 +505,23 @@ public class MainController implements Initializable {
     public class ModifiedHistory extends History {
 
         private String modifiedAmount;
-        private Long balanceAfterOperation;
+        private String modifiedBalanceAfterOperation;
         private String source;
         private String title;
 
-        public ModifiedHistory(String modifiedAmount, Long balanceAfterOperation, String source, String title) {
+        public ModifiedHistory(String modifiedAmount, String modifiedBalanceAfterOperation, String source, String title) {
             this.modifiedAmount = modifiedAmount;
-            this.balanceAfterOperation = balanceAfterOperation;
+            this.modifiedBalanceAfterOperation = modifiedBalanceAfterOperation;
             this.source = source;
             this.title = title;
         }
 
-        @Override
-        public Long getBalanceAfterOperation() {
-            return balanceAfterOperation;
+
+        public String getModifiedBalanceAfterOperation() {
+            return modifiedBalanceAfterOperation;
         }
 
-        @Override
-        public void setBalanceAfterOperation(Long balanceAfterOperation) {
+        public void setModifiedBalanceAfterOperation(String modifiedBalanceAfterOperation) {
             this.balanceAfterOperation = balanceAfterOperation;
         }
 
